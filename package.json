@@ -1,0 +1,20 @@
+{
+  "name": "telegram-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "start:dev": "nodemon src/sevrer.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^17.2.3",
+    "express": "^4.21.2",
+    "node-telegram-bot-api": "^0.66.0",
+    "nodemon": "^3.1.10",
+    "pg": "^8.16.3"
+  }
+}

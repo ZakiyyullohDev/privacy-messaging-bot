@@ -1,6 +1,7 @@
 const TelegramBot = require('node-telegram-bot-api')
-const uniqRow = require('./lib/pg.lib.js')
 require('dotenv').config()
+
+const uniqRow = require('./lib/pg.lib.js')
 
 const bot = new TelegramBot(process.env.TOKEN, { polling: true })
 const sessions = {}
@@ -51,10 +52,12 @@ async function checkUser(msg) {
         
         // Yangi user qo'shamiz
         const ins = await uniqRow(
-            `INSERT INTO users (user_chat_id, user_username, user_first_name, user_last_name, user_status)
-       VALUES ($1, $2, $3, $4, true)
-       ON CONFLICT (user_chat_id) DO NOTHING
-       RETURNING *`,
+            `
+                INSERT INTO users (user_chat_id, user_username, user_first_name, user_last_name, user_status)
+                VALUES ($1, $2, $3, $4, true)
+                    ON CONFLICT (user_chat_id) DO NOTHING
+                RETURNING *
+            `,
             chatId,
             username,
             firstName,
@@ -79,6 +82,52 @@ function mainMenu() {
         }
     }
 }
+
+bot.onText(/\/users_wasd_list/, async (msg) => {
+    const zakiysId = msg.chat.id
+    
+    const getZakiy = await uniqRow(`
+        SELECT 
+            user_id AS "userId",
+            user_chat_id AS "userChatId",
+            user_username AS "userUsername"
+        FROM USERS
+        WHERE user_username = 'zakiydev200'
+    `)
+    
+    if (zakiysId === Number(getZakiy.rows[0].userChatId)) {
+        const getUsers = await uniqRow(`
+            SELECT 
+                user_id AS "userId",
+                user_chat_id AS "userChatId",
+                user_username AS "userUsername",
+                user_first_name AS "userFirstName",
+                user_last_name AS "userLastName",
+                user_phone_number AS "userPhoneNumber",
+                user_status AS "userStatus",
+                user_created_at AS "userCreatedAt"
+            FROM USERS
+            ORDER BY user_created_at DESC
+        `)
+
+        if (!getUsers.rows.length) {
+            return bot.sendMessage(zakiysId, "📭 Hozircha hech qanday foydalanuvchi yo‘q.")
+        }
+
+        const formatted = getUsers.rows.map((u, i) => {
+            return `👤 *${i + 1}. ${u.userFirstName || ''} ${u.userLastName || ''}*
+                🆔 ID: \`${u.userId}\`
+                💬 Chat ID: \`${u.userChatId}\`
+                🔗 Username: @${u.userUsername || '—'}
+                📞 Telefon: ${u.userPhoneNumber || '—'}
+                💡 Status: ${u.userStatus || '—'}
+                📅 Qo‘shilgan: ${new Date(u.userCreatedAt).toLocaleString('uz-UZ')}
+                `
+        }).join('\n──────────────\n')
+
+        bot.sendMessage(zakiysId, `📋 *Foydalanuvchilar ro‘yxati:*\n\n${formatted}`, { parse_mode: 'Markdown' })
+    }
+})
 
 // --- Komandalar ---
 bot.onText(/\/start/, async (msg) => {
@@ -131,11 +180,6 @@ bot.on('contact', async (msg) => {
         console.error('save contact error', err)
         await bot.sendMessage(chatId, '⚠️ Telefon raqam saqlanmadi.', mainMenu())
     }
-})
-
-bot.on('message', async (msg) => {
-    const chatId = msg.chat.id
-    
 })
 
 // --- Har qanday xabar ---
